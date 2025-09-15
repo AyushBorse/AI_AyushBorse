@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  cognimate:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./output:/app/output
+      - ./storage:/app/storage
+    environment:
+      - ENVIRONMENT=production
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - NEO4J_URI=${NEO4J_URI}
+      - NEO4J_USERNAME=${NEO4J_USERNAME}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+    depends_on:
+      - neo4j
+      - redis
+
+  neo4j:
+    image: neo4j:5.12.0
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
+      - NEO4J_PLUGINS=["apoc"]
+
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:1.22.7
+    ports:
+      - "8080:8080"
+    environment:
+      - QUERY_DEFAULTS_LIMIT=25
+      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
+      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+      - DEFAULT_VECTORIZER_MODULE=none
+      - CLUSTER_HOSTNAME=node1
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  redis_data:
+  weaviate_data:

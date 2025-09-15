@@ -1,0 +1,71 @@
+
+### 2. core/pipeline_orchestrator.py
+
+```python
+import logging
+from typing import Dict, Any
+from .knowledge_graph import KnowledgeGraph
+from .ai_explainer import AIExplainer
+from .script_formatter import ScriptFormatter
+from .manim_automation import ManimAutomation
+
+logger = logging.getLogger(__name__)
+
+class PipelineOrchestrator:
+    """Orchestrates the entire video generation pipeline."""
+    
+    def __init__(self, config: Dict[str, Any]):
+        self.config = config
+        self.knowledge_graph = KnowledgeGraph(config)
+        self.ai_explainer = AIExplainer(config)
+        self.script_formatter = ScriptFormatter(config)
+        self.manim_automation = ManimAutomation(config)
+        
+    def process_query(self, query: str, sector: str = "general") -> Dict[str, Any]:
+        """
+        Process a user query through the entire pipeline.
+        
+        Args:
+            query: The user's query for a concept explanation
+            sector: The specialized sector (gis, space_tech, dsa)
+            
+        Returns:
+            Dictionary containing the generated video path and metadata
+        """
+        try:
+            # Step 1: Retrieve relevant knowledge from the knowledge graph
+            logger.info(f"Retrieving knowledge for query: {query}")
+            knowledge_chunks = self.knowledge_graph.retrieve_concept(query, sector)
+            
+            # Step 2: Generate explanation using AI
+            logger.info("Generating AI explanation")
+            raw_script = self.ai_explainer.generate_explanation(
+                query, knowledge_chunks, sector
+            )
+            
+            # Step 3: Format the script for Manim
+            logger.info("Formatting script for Manim")
+            formatted_script = self.script_formatter.format_script(raw_script, sector)
+            
+            # Step 4: Generate Manim animation
+            logger.info("Generating Manim animation")
+            video_path, metadata = self.manim_automation.generate_animation(
+                formatted_script, query, sector
+            )
+            
+            return {
+                "success": True,
+                "video_path": video_path,
+                "metadata": metadata,
+                "query": query,
+                "sector": sector
+            }
+            
+        except Exception as e:
+            logger.error(f"Pipeline error: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "query": query,
+                "sector": sector
+            }
